@@ -57,6 +57,10 @@ app.get("/", async (req, res) => {
   });
 });
 
+// ###################################
+// ##### ROTAS PARA "QUESTOES" #####
+// ###################################
+
 // Rota para retornar todas as questões cadastradas
 app.get("/questoes", async (req, res) => {
   console.log("Rota GET /questoes solicitada"); // Log no terminal para indicar que a rota foi acessada
@@ -123,7 +127,7 @@ app.delete("/questoes/:id", async (req, res) => {
   } catch (e) {
     console.error("Erro ao excluir questão:", e); // Log do erro no servidor
     res.status(500).json({
-      erro: "Erro interno do servidor"
+      erro: "Erro interno do servidor",
     });
   }
 });
@@ -153,12 +157,12 @@ app.post("/questoes", async (req, res) => {
   } catch (e) {
     console.error("Erro ao inserir questão:", e); // Log do erro no servidor
     res.status(500).json({
-      erro: "Erro interno do servidor"
+      erro: "Erro interno do servidor",
     });
   }
 });
 
-// NOVA ROTA PARA ATUALIZAR UMA QUESTÃO PELO ID
+// Rota para atualizar uma questão pelo ID
 app.put("/questoes/:id", async (req, res) => {
   console.log("Rota PUT /questoes solicitada"); // Log no terminal para indicar que a rota foi acessada
 
@@ -183,7 +187,8 @@ app.put("/questoes/:id", async (req, res) => {
     data.nivel = data.nivel || questao[0].nivel;
 
     // Atualiza a questão
-    consulta ="UPDATE questoes SET enunciado = $1, disciplina = $2, tema = $3, nivel = $4 WHERE id = $5";
+    consulta =
+      "UPDATE questoes SET enunciado = $1, disciplina = $2, tema = $3, nivel = $4 WHERE id = $5";
     // Executa a consulta SQL com os valores fornecidos
     resultado = await db.query(consulta, [
       data.enunciado,
@@ -199,6 +204,129 @@ app.put("/questoes/:id", async (req, res) => {
     res.status(500).json({
       erro: "Erro interno do servidor",
     });
+  }
+});
+
+// ###################################
+// ##### ROTAS PARA "USUARIOS" #####
+// ###################################
+
+// 1. [GET] /usuarios (Listar todos)
+app.get("/usuarios", async (req, res) => {
+  console.log("Rota GET /usuarios solicitada");
+  const db = conectarBD();
+  try {
+    const resultado = await db.query("SELECT * FROM usuarios"); // MUDOU AQUI
+    const dados = resultado.rows;
+    res.json(dados);
+  } catch (e) {
+    console.error("Erro ao buscar usuários:", e); // MUDOU AQUI
+    res.status(500).json({ erro: "Erro interno do servidor" });
+  }
+});
+
+// 2. [GET] /usuarios/:id (Buscar um)
+app.get("/usuarios/:id", async (req, res) => {
+  console.log("Rota GET /usuarios/:id solicitada");
+  try {
+    const id = req.params.id;
+    const db = conectarBD();
+    const consulta = "SELECT * FROM usuarios WHERE id = $1"; // MUDOU AQUI
+    const resultado = await db.query(consulta, [id]);
+    const dados = resultado.rows;
+    if (dados.length === 0) {
+      return res.status(404).json({ mensagem: "Usuário não encontrado" }); // MUDOU AQUI
+    }
+    res.json(dados);
+  } catch (e) {
+    console.error("Erro ao buscar usuário:", e); // MUDOU AQUI
+    res.status(500).json({ erro: "Erro interno do servidor" });
+  }
+});
+
+// 3. [POST] /usuarios (Criar um)
+app.post("/usuarios", async (req, res) => {
+  console.log("Rota POST /usuarios solicitada");
+  try {
+    const data = req.body;
+    // Validação dos dados (MUDOU AQUI)
+    if (!data.nome || !data.email || !data.senha) {
+      return res.status(400).json({
+        erro: "Dados inválidos",
+        mensagem: "Campos (nome, email, senha) são obrigatórios.",
+      });
+    }
+
+    const db = conectarBD();
+    // Consulta SQL (MUDOU AQUI)
+    const consulta =
+      "INSERT INTO usuarios (nome, email, senha) VALUES ($1, $2, $3)";
+    const usuario = [data.nome, data.email, data.senha]; // MUDOU AQUI
+
+    await db.query(consulta, usuario);
+    res.status(201).json({ mensagem: "Usuário criado com sucesso!" }); // MUDOU AQUI
+  } catch (e) {
+    console.error("Erro ao inserir usuário:", e); // MUDOU AQUI
+    res.status(500).json({ erro: "Erro interno do servidor" });
+  }
+});
+
+// 4. [PUT] /usuarios/:id (Atualizar um)
+app.put("/usuarios/:id", async (req, res) => {
+  console.log("Rota PUT /usuarios/:id solicitada");
+  try {
+    const id = req.params.id;
+    const db = conectarBD();
+    let consulta = "SELECT * FROM usuarios WHERE id = $1"; // MUDOU AQUI
+    let resultado = await db.query(consulta, [id]);
+    let usuario = resultado.rows; // MUDOU AQUI
+
+    if (usuario.length === 0) {
+      return res.status(404).json({ message: "Usuário não encontrado" }); // MUDOU AQUI
+    }
+
+    const data = req.body;
+    // MUDOU A LÓGICA DE ATUALIZAÇÃO
+    data.nome = data.nome || usuario[0].nome;
+    data.email = data.email || usuario[0].email;
+    data.senha = data.senha || usuario[0].senha;
+
+    consulta =
+      "UPDATE usuarios SET nome = $1, email = $2, senha = $3 WHERE id = $4"; // MUDOU AQUI
+    resultado = await db.query(consulta, [
+      data.nome,
+      data.email,
+      data.senha,
+      id,
+    ]);
+
+    res.status(200).json({ message: "Usuário atualizado com sucesso!" }); // MUDOU AQUI
+  } catch (e) {
+    console.error("Erro ao atualizar usuário:", e); // MUDOU AQUI
+    res.status(500).json({ erro: "Erro interno do servidor" });
+  }
+});
+
+// 5. [DELETE] /usuarios/:id (Deletar um)
+app.delete("/usuarios/:id", async (req, res) => {
+  console.log("Rota DELETE /usuarios/:id solicitada");
+  try {
+    const id = req.params.id;
+    const db = conectarBD();
+    let consulta = "SELECT * FROM usuarios WHERE id = $1"; // MUDOU AQUI
+    let resultado = await db.query(consulta, [id]);
+    let dados = resultado.rows;
+
+    if (dados.length === 0) {
+      return res.status(404).json({ mensagem: "Usuário não encontrado" }); // MUDOU AQUI
+    }
+
+    consulta = "DELETE FROM usuarios WHERE id = $1"; // MUDOU AQUI
+    await db.query(consulta, [id]);
+    res.status(200).json({ mensagem: "Usuário excluido com sucesso!!" }); // MUDOU AQUI
+  } catch (e) {
+    console.error("Erro ao excluir usuário:", e); // MUDOU AQUI
+    res.status(500).json({ erro: "Erro interno do servidor" });
   }
 });
 
