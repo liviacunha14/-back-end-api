@@ -330,6 +330,7 @@ app.delete("/usuarios/:id", async (req, res) => {
   }
 });
 
+
 // ######
 // Local onde o servidor irá escutar as requisições
 // ######
